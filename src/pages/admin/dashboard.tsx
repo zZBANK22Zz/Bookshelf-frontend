@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 
 type User = { id: number; name: string };
-type Book = { id: number; createdAt: string };
+type Book = { id: number; title?: string; createdAt: string };
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
@@ -45,11 +45,23 @@ export default function AdminDashboard() {
       const res = await fetch('http://localhost:8000/users', {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (res.status === 403) {
+        toast.error('Access denied: not ADMIN');
+        return;
+      }
+
+      if (!res.ok) {
+        toast.error('Failed to fetch users');
+        return;
+      }
+
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setUsers(data);
+
+      if (Array.isArray(data.users)) {
+        setUsers(data.users);
       } else {
-        console.error('Expected array but got:', data);
+        console.error('Expected data.users to be array but got:', data);
         toast.error('Invalid user data from server');
         setUsers([]);
       }
@@ -83,12 +95,6 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
         <Card>
           <CardContent className="p-6">
-            <h2 className="text-xl font-semibold">👥 Total Users</h2>
-            <p className="text-3xl mt-2">{users.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
             <h2 className="text-xl font-semibold">📚 Total Books</h2>
             <p className="text-3xl mt-2">{books.length}</p>
           </CardContent>
@@ -107,22 +113,24 @@ export default function AdminDashboard() {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      
+
       <div className="bg-white rounded shadow p-6 mt-10">
-        <h3 className="text-lg font-bold mb-4">All Users</h3>
+        <h3 className="text-lg font-bold mb-4">All Books</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-left border border-gray-200">
             <thead className="bg-gray-100">
               <tr>
                 <th className="px-4 py-2 border-b">ID</th>
-                <th className="px-4 py-2 border-b">Name</th>
+                <th className="px-4 py-2 border-b">Title</th>
+                <th className="px-4 py-2 border-b">Created At</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 border-b">{user.id}</td>
-                  <td className="px-4 py-2 border-b">{user.name}</td>
+              {books.map((book) => (
+                <tr key={book.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 border-b">{book.id}</td>
+                  <td className="px-4 py-2 border-b">{(book as any).title ?? '-'}</td>
+                  <td className="px-4 py-2 border-b">{new Date(book.createdAt).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
